@@ -51,6 +51,15 @@ const colorHueCanvas = document.getElementById('colorHue');
 const companyTabs = document.getElementById('companyTabs');
 const downloadBtn = document.getElementById('downloadBtn');
 
+const DOWNLOAD_COUNTER_KEY = 'bnxImageDownloadCounter';
+
+function getNextDownloadFilename() {
+  const current = Number(localStorage.getItem(DOWNLOAD_COUNTER_KEY) || 0);
+  const next = current + 1;
+  localStorage.setItem(DOWNLOAD_COUNTER_KEY, String(next));
+  return `bnxImage${String(next).padStart(2, '0')}.png`;
+}
+
 function loadImage(src) {
   if (images[src]) return images[src];
   images[src] = new Promise((resolve, reject) => {
@@ -493,7 +502,7 @@ downloadBtn.addEventListener('click', async () => {
   try {
     await render();
     const link = document.createElement('a');
-    link.download = `bnx-profile-${Date.now()}.png`;
+    link.download = getNextDownloadFilename();
     link.href = canvas.toDataURL('image/png');
     link.click();
   } catch (error) {
