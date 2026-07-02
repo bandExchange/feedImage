@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>피드 이미지 생성기</title>
+  <link rel="stylesheet" href="styles.css?v=3" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>피드용 이미지 생성하기</h1>
+    </header>
+
+    <main class="main">
+      <section class="preview-section">
+        <div class="preview-wrap">
+          <canvas id="preview" width="1890" height="1890"></canvas>
+        </div>
+      </section>
+
+      <section class="controls">
+        <div class="control-group">
+          <label class="control-label" for="photoInput">프로필 사진</label>
+          <input id="photoInput" type="file" accept="image/*" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="nameInput">이름</label>
+          <input id="nameInput" type="text" placeholder="이름을 입력하세요" maxlength="20" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="cardHue">색상 변경</label>
+          <input id="cardHue" type="range" min="0" max="360" value="0" />
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">투자사 선택하기</span>
+          <div class="company-tabs" id="companyTabs">
+            <button type="button" class="company-tab" data-company="apex">APEX Tech</button>
+            <button type="button" class="company-tab" data-company="np">NP Games</button>
+            <button type="button" class="company-tab" data-company="qm">QM Enter</button>
+          </div>
+        </div>
+
+        <button type="button" class="download-btn" id="downloadBtn">PNG로 다운로드</button>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js?v=10"></script>
+</body>
+</html>

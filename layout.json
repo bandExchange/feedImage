@@ -1,0 +1,12 @@
+{
+  "canvas": { "width": 1890, "height": 1890 },
+  "layers": {
+    "background": { "x": 0, "y": 0, "width": 1890, "height": 1890 },
+    "rect2": { "x": 313, "y": 229, "width": 1265, "height": 1432, "radius": 120 },
+    "rect1": { "x": 425, "y": 270, "width": 1041, "height": 1350, "radius": 80 },
+    "photo": { "x": 742, "y": 442, "width": 405, "height": 405 },
+    "name": { "x": 699, "y": 907, "width": 494, "height": 60, "fontSize": 48 },
+    "text": { "x": 699, "y": 998, "width": 492, "height": 153 },
+    "logo": { "x": 699, "y": 1230, "width": 492, "height": 220 }
+  }
+}
