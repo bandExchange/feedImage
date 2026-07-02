@@ -44,7 +44,8 @@ const LOGO_DRAW_MODE = {
 const state = {
   photo: null,
   name: '',
-  cardColor: { h: 210, s: 42, v: 97 },
+  cardHue: 0,
+  cardSat: 100,
   company: null,
 };
 
@@ -56,9 +57,8 @@ const ctx = canvas.getContext('2d');
 
 const photoInput = document.getElementById('photoInput');
 const nameInput = document.getElementById('nameInput');
-const colorSvCanvas = document.getElementById('colorSv');
-const colorHueCanvas = document.getElementById('colorHue');
-const colorSwatch = document.getElementById('colorSwatch');
+const cardHueInput = document.getElementById('cardHue');
+const cardSatInput = document.getElementById('cardSat');
 const companyTabs = document.getElementById('companyTabs');
 const downloadBtn = document.getElementById('downloadBtn');
 
@@ -171,45 +171,13 @@ function hslToRgb(h, s, l) {
   ];
 }
 
-function hsvToRgb(h, s, v) {
-  s /= 100;
-  v /= 100;
-  const c = v * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = v - c;
-  let r = 0;
-  let g = 0;
-  let b = 0;
-
-  if (h < 60) [r, g, b] = [c, x, 0];
-  else if (h < 120) [r, g, b] = [x, c, 0];
-  else if (h < 180) [r, g, b] = [0, c, x];
-  else if (h < 240) [r, g, b] = [0, x, c];
-  else if (h < 300) [r, g, b] = [x, 0, c];
-  else [r, g, b] = [c, 0, x];
-
-  return [
-    Math.round((r + m) * 255),
-    Math.round((g + m) * 255),
-    Math.round((b + m) * 255),
-  ];
-}
-
-function rgbToCss(r, g, b) {
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
-function applyCardColorToImageData(data, h, s, v) {
-  const satFactor = s / 100;
-  const valFactor = v / 100;
+function applyHueSaturationToImageData(data, hueShift, satPercent) {
+  const satFactor = satPercent / 100;
 
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] === 0) continue;
-    const [, os, ol] = rgbToHsl(data[i], data[i + 1], data[i + 2]);
-    const relativeL = ol / 100;
-    const newL = Math.min(100, relativeL * valFactor * 100);
-    const newS = Math.min(100, os * satFactor + satFactor * 18);
-    const [r, g, b] = hslToRgb(h, newS, newL);
+    const [h, s, l] = rgbToHsl(data[i], data[i + 1], data[i + 2]);
+    const [r, g, b] = hslToRgb(h + hueShift, Math.min(100, s * satFactor), l);
     data[i] = r;
     data[i + 1] = g;
     data[i + 2] = b;
@@ -218,8 +186,10 @@ function applyCardColorToImageData(data, h, s, v) {
 
 const tintedFieldCache = new Map();
 
-function tintFieldImage(img, color) {
-  const cacheKey = `${color.h}-${color.s}-${color.v}`;
+function tintFieldImage(img, hueShift, satPercent) {
+  if (!hueShift && satPercent === 100) return img;
+
+  const cacheKey = `${hueShift}-${satPercent}`;
   if (tintedFieldCache.has(cacheKey)) return tintedFieldCache.get(cacheKey);
 
   const offscreen = document.createElement('canvas');
@@ -232,15 +202,14 @@ function tintFieldImage(img, color) {
 
   try {
     const imageData = context.getImageData(0, 0, offscreen.width, offscreen.height);
-    applyCardColorToImageData(imageData.data, color.h, color.s, color.v);
+    applyHueSaturationToImageData(imageData.data, hueShift, satPercent);
     context.putImageData(imageData, 0, 0);
   } catch (error) {
     const fallback = document.createElement('canvas');
     fallback.width = img.width;
     fallback.height = img.height;
     const fallbackCtx = fallback.getContext('2d');
-    const hueShift = color.h - 210;
-    fallbackCtx.filter = `hue-rotate(${hueShift}deg) saturate(${0.8 + color.s / 100}) brightness(${0.6 + color.v / 250})`;
+    fallbackCtx.filter = `hue-rotate(${hueShift}deg) saturate(${satPercent}%)`;
     fallbackCtx.drawImage(img, 0, 0);
     fallbackCtx.filter = 'none';
     tinted = fallback;
@@ -250,139 +219,11 @@ function tintFieldImage(img, color) {
   return tinted;
 }
 
-function updateColorSwatch() {
-  if (!colorSwatch) return;
-  const [r, g, b] = hsvToRgb(state.cardColor.h, state.cardColor.s, state.cardColor.v);
-  colorSwatch.style.background = rgbToCss(r, g, b);
-}
-
-function drawSvPlane() {
-  if (!colorSvCanvas) return;
-  const context = colorSvCanvas.getContext('2d');
-  const { width, height } = colorSvCanvas;
-  const imageData = context.createImageData(width, height);
-  const { data } = imageData;
-  const hue = state.cardColor.h;
-
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const s = (x / (width - 1)) * 100;
-      const v = (1 - y / (height - 1)) * 100;
-      const [r, g, b] = hsvToRgb(hue, s, v);
-      const index = (y * width + x) * 4;
-      data[index] = r;
-      data[index + 1] = g;
-      data[index + 2] = b;
-      data[index + 3] = 255;
-    }
-  }
-
-  context.putImageData(imageData, 0, 0);
-  drawSvCursor(context);
-}
-
-function drawHueStrip() {
-  if (!colorHueCanvas) return;
-  const context = colorHueCanvas.getContext('2d');
-  const { width, height } = colorHueCanvas;
-  const imageData = context.createImageData(width, height);
-  const { data } = imageData;
-
-  for (let y = 0; y < height; y += 1) {
-    const hue = (y / (height - 1)) * 360;
-    const [r, g, b] = hsvToRgb(hue, 100, 100);
-    for (let x = 0; x < width; x += 1) {
-      const index = (y * width + x) * 4;
-      data[index] = r;
-      data[index + 1] = g;
-      data[index + 2] = b;
-      data[index + 3] = 255;
-    }
-  }
-
-  context.putImageData(imageData, 0, 0);
-  drawHueCursor(context);
-}
-
-function drawSvCursor(context) {
-  const { width, height } = colorSvCanvas;
-  const x = (state.cardColor.s / 100) * (width - 1);
-  const y = (1 - state.cardColor.v / 100) * (height - 1);
-  context.save();
-  context.strokeStyle = '#fff';
-  context.lineWidth = 2;
-  context.beginPath();
-  context.arc(x, y, 7, 0, Math.PI * 2);
-  context.stroke();
-  context.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-  context.lineWidth = 1;
-  context.stroke();
-  context.restore();
-}
-
-function drawHueCursor(context) {
-  const { width, height } = colorHueCanvas;
-  const y = (state.cardColor.h / 360) * (height - 1);
-  context.save();
-  context.strokeStyle = '#fff';
-  context.lineWidth = 2;
-  context.beginPath();
-  context.moveTo(0, y);
-  context.lineTo(width, y);
-  context.stroke();
-  context.restore();
-}
-
-function setCardColorFromSv(x, y) {
-  const { width, height } = colorSvCanvas;
-  state.cardColor.s = Math.max(0, Math.min(100, (x / (width - 1)) * 100));
-  state.cardColor.v = Math.max(0, Math.min(100, (1 - y / (height - 1)) * 100));
-  onCardColorChange();
-}
-
-function setCardColorFromHue(y) {
-  const { height } = colorHueCanvas;
-  state.cardColor.h = Math.max(0, Math.min(360, (y / (height - 1)) * 360));
-  onCardColorChange();
-}
-
-function onCardColorChange() {
-  tintedFieldCache.clear();
-  updateColorSwatch();
-  drawSvPlane();
-  drawHueStrip();
-  scheduleRender();
-}
-
-function bindColorPickerDrag(canvas, onMove) {
-  if (!canvas) return;
-
-  const handlePointer = (event) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * canvas.width;
-    const y = ((event.clientY - rect.top) / rect.height) * canvas.height;
-    onMove(x, y);
+function getCardAdjustments() {
+  return {
+    hue: Number(cardHueInput?.value ?? state.cardHue ?? 0),
+    sat: Number(cardSatInput?.value ?? state.cardSat ?? 100),
   };
-
-  canvas.addEventListener('pointerdown', (event) => {
-    canvas.setPointerCapture(event.pointerId);
-    handlePointer(event);
-  });
-
-  canvas.addEventListener('pointermove', (event) => {
-    if (!canvas.hasPointerCapture(event.pointerId)) return;
-    handlePointer(event);
-  });
-}
-
-function initColorPicker() {
-  if (!colorSvCanvas || !colorHueCanvas) return;
-
-  bindColorPickerDrag(colorSvCanvas, (x, y) => setCardColorFromSv(x, y));
-  bindColorPickerDrag(colorHueCanvas, (_x, y) => setCardColorFromHue(y));
-  updateColorSwatch();
-  drawSvPlane();
-  drawHueStrip();
 }
 
 function drawPhotoPlaceholder(context, area) {
@@ -399,8 +240,8 @@ function drawPhotoPlaceholder(context, area) {
   context.restore();
 }
 
-function drawMainCard(context, fieldImg, cardColor) {
-  const tintedField = tintFieldImage(fieldImg, cardColor);
+function drawMainCard(context, fieldImg, hueShift, satPercent) {
+  const tintedField = tintFieldImage(fieldImg, hueShift, satPercent);
   const { rect1 } = LAYOUT.layers;
 
   context.save();
@@ -439,6 +280,10 @@ function drawBackground(context, backgroundImg) {
 async function render() {
   await loadFont();
 
+  const { hue, sat } = getCardAdjustments();
+  state.cardHue = hue;
+  state.cardSat = sat;
+
   const [backgroundImg, fieldImg, textImg] = await Promise.all([
     loadImage(ASSETS.background),
     loadImage(ASSETS.field),
@@ -448,7 +293,7 @@ async function render() {
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
   drawBackground(ctx, backgroundImg);
-  drawMainCard(ctx, fieldImg, state.cardColor);
+  drawMainCard(ctx, fieldImg, hue, sat);
 
   const { photo } = LAYOUT.layers;
   if (state.photo) {
@@ -524,6 +369,21 @@ nameInput.addEventListener('input', (event) => {
   scheduleRender();
 });
 
+function handleCardAdjustChange() {
+  tintedFieldCache.clear();
+  scheduleRender();
+}
+
+if (cardHueInput) {
+  cardHueInput.addEventListener('input', handleCardAdjustChange);
+  cardHueInput.addEventListener('change', handleCardAdjustChange);
+}
+
+if (cardSatInput) {
+  cardSatInput.addEventListener('input', handleCardAdjustChange);
+  cardSatInput.addEventListener('change', handleCardAdjustChange);
+}
+
 companyTabs.addEventListener('click', (event) => {
   const button = event.target.closest('[data-company]');
   if (!button) return;
@@ -551,7 +411,6 @@ downloadBtn.addEventListener('click', async () => {
 });
 
 scheduleRender();
-initColorPicker();
 
 if (window.location.protocol === 'file:') {
   const warning = document.getElementById('fileWarning');
