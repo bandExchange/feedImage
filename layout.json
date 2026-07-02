@@ -6,7 +6,7 @@
     "rect1": { "x": 425, "y": 270, "width": 1041, "height": 1350, "radius": 80 },
     "photo": { "x": 732, "y": 432, "width": 425, "height": 425 },
     "name": { "x": 699, "y": 907, "width": 494, "height": 60, "fontSize": 68 },
-    "investor": { "x": 680, "y": 983, "width": 530, "height": 130 },
+    "investor": { "x": 680, "y": 993, "width": 530, "height": 130 },
     "logo": { "x": 675, "y": 1220, "width": 540, "height": 255 }
   }
 }
