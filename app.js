@@ -6,27 +6,16 @@ const LAYOUT = {
     rect1: { x: 425, y: 270, width: 1041, height: 1350, radius: 80 },
     photo: { x: 732, y: 432, width: 425, height: 425 },
     name: { x: 699, y: 907, width: 494, height: 60, fontSize: 60 },
-    investor: { x: 699, y: 998, width: 492, height: 50 },
-    firmText: { x: 699, y: 1107, width: 492, height: 44, srcY: 109, srcH: 44 },
+    investor: { x: 699, y: 998, width: 492, height: 90 },
     logo: { x: 699, y: 1235, width: 492, height: 220 },
   },
 };
 
 const CANVAS_SIZE = LAYOUT.canvas.width;
 
-// pffield-clean.png = 그림자 제거된 카드 본체
-const CARD_ASSET = {
-  offsetX: 0,
-  offsetY: 0,
-  width: 1041,
-  height: 1350,
-};
-
 const ASSETS = {
   background: './assets/pfBackground.png',
-  field: './assets/pffield-clean.png',
   investor: './assets/bnxInvestor.png',
-  firmText: './assets/pfText.png',
   font: './assets/Paperlogy-3Light.ttf',
 };
 
@@ -36,7 +25,6 @@ const LOGOS = {
   qm: './assets/qmmwhite.png',
 };
 
-// NP Games는 검은 배경 포함 원본 그대로 표시
 const LOGO_DRAW_MODE = {
   apex: 'screen',
   np: 'source-over',
@@ -46,8 +34,7 @@ const LOGO_DRAW_MODE = {
 const state = {
   photo: null,
   name: '',
-  cardHue: 0,
-  cardSat: 100,
+  cardColor: { h: 210, s: 42, v: 97 },
   company: null,
 };
 
@@ -59,8 +46,9 @@ const ctx = canvas.getContext('2d');
 
 const photoInput = document.getElementById('photoInput');
 const nameInput = document.getElementById('nameInput');
-const cardHueInput = document.getElementById('cardHue');
-const cardSatInput = document.getElementById('cardSat');
+const colorSvCanvas = document.getElementById('colorSv');
+const colorHueCanvas = document.getElementById('colorHue');
+const colorSwatch = document.getElementById('colorSwatch');
 const companyTabs = document.getElementById('companyTabs');
 const downloadBtn = document.getElementById('downloadBtn');
 
@@ -113,119 +101,166 @@ function drawCircularPhoto(context, img, area) {
   context.restore();
 }
 
-function rgbToHsl(r, g, b) {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0;
-  let s = 0;
-  const l = (max + min) / 2;
-
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r:
-        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-        break;
-      case g:
-        h = ((b - r) / d + 2) / 6;
-        break;
-      default:
-        h = ((r - g) / d + 4) / 6;
-        break;
-    }
-  }
-
-  return [h * 360, s * 100, l * 100];
-}
-
-function hslToRgb(h, s, l) {
-  h = ((h % 360) + 360) % 360;
+function hsvToRgb(h, s, v) {
   s /= 100;
-  l /= 100;
+  v /= 100;
+  const c = v * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = v - c;
+  let r = 0;
+  let g = 0;
+  let b = 0;
 
-  if (s === 0) {
-    const gray = Math.round(l * 255);
-    return [gray, gray, gray];
-  }
-
-  const hue2rgb = (p, q, t) => {
-    let value = t;
-    if (value < 0) value += 1;
-    if (value > 1) value -= 1;
-    if (value < 1 / 6) return p + (q - p) * 6 * value;
-    if (value < 1 / 2) return q;
-    if (value < 2 / 3) return p + (q - p) * (2 / 3 - value) * 6;
-    return p;
-  };
-
-  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-  const p = 2 * l - q;
-  const hr = h / 360;
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
 
   return [
-    Math.round(hue2rgb(p, q, hr + 1 / 3) * 255),
-    Math.round(hue2rgb(p, q, hr) * 255),
-    Math.round(hue2rgb(p, q, hr - 1 / 3) * 255),
+    Math.round((r + m) * 255),
+    Math.round((g + m) * 255),
+    Math.round((b + m) * 255),
   ];
 }
 
-function applyHueSaturationToImageData(data, hueShift, satPercent) {
-  const satFactor = satPercent / 100;
-
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] === 0) continue;
-    const [h, s, l] = rgbToHsl(data[i], data[i + 1], data[i + 2]);
-    const [r, g, b] = hslToRgb(h + hueShift, Math.min(100, s * satFactor), l);
-    data[i] = r;
-    data[i + 1] = g;
-    data[i + 2] = b;
-  }
+function rgbToCss(r, g, b) {
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
-const tintedFieldCache = new Map();
-
-function tintFieldImage(img, hueShift, satPercent) {
-  if (!hueShift && satPercent === 100) return img;
-
-  const cacheKey = `${hueShift}-${satPercent}`;
-  if (tintedFieldCache.has(cacheKey)) return tintedFieldCache.get(cacheKey);
-
-  const offscreen = document.createElement('canvas');
-  offscreen.width = img.width;
-  offscreen.height = img.height;
-  const context = offscreen.getContext('2d', { willReadFrequently: true });
-  context.drawImage(img, 0, 0);
-
-  let tinted = offscreen;
-
-  try {
-    const imageData = context.getImageData(0, 0, offscreen.width, offscreen.height);
-    applyHueSaturationToImageData(imageData.data, hueShift, satPercent);
-    context.putImageData(imageData, 0, 0);
-  } catch (error) {
-    const fallback = document.createElement('canvas');
-    fallback.width = img.width;
-    fallback.height = img.height;
-    const fallbackCtx = fallback.getContext('2d');
-    fallbackCtx.filter = `hue-rotate(${hueShift}deg) saturate(${satPercent}%)`;
-    fallbackCtx.drawImage(img, 0, 0);
-    fallbackCtx.filter = 'none';
-    tinted = fallback;
-  }
-
-  tintedFieldCache.set(cacheKey, tinted);
-  return tinted;
+function updateColorSwatch() {
+  if (!colorSwatch) return;
+  const [r, g, b] = hsvToRgb(state.cardColor.h, state.cardColor.s, state.cardColor.v);
+  colorSwatch.style.background = rgbToCss(r, g, b);
 }
 
-function getCardAdjustments() {
-  return {
-    hue: Number(cardHueInput?.value ?? state.cardHue ?? 0),
-    sat: Number(cardSatInput?.value ?? state.cardSat ?? 100),
+function drawSvPlane() {
+  if (!colorSvCanvas) return;
+  const context = colorSvCanvas.getContext('2d');
+  const { width, height } = colorSvCanvas;
+  const imageData = context.createImageData(width, height);
+  const { data } = imageData;
+  const hue = state.cardColor.h;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const s = (x / (width - 1)) * 100;
+      const v = (1 - y / (height - 1)) * 100;
+      const [r, g, b] = hsvToRgb(hue, s, v);
+      const index = (y * width + x) * 4;
+      data[index] = r;
+      data[index + 1] = g;
+      data[index + 2] = b;
+      data[index + 3] = 255;
+    }
+  }
+
+  context.putImageData(imageData, 0, 0);
+  drawSvCursor(context);
+}
+
+function drawHueStrip() {
+  if (!colorHueCanvas) return;
+  const context = colorHueCanvas.getContext('2d');
+  const { width, height } = colorHueCanvas;
+  const imageData = context.createImageData(width, height);
+  const { data } = imageData;
+
+  for (let y = 0; y < height; y += 1) {
+    const hue = (y / (height - 1)) * 360;
+    const [r, g, b] = hsvToRgb(hue, 100, 100);
+    for (let x = 0; x < width; x += 1) {
+      const index = (y * width + x) * 4;
+      data[index] = r;
+      data[index + 1] = g;
+      data[index + 2] = b;
+      data[index + 3] = 255;
+    }
+  }
+
+  context.putImageData(imageData, 0, 0);
+  drawHueCursor(context);
+}
+
+function drawSvCursor(context) {
+  const { width, height } = colorSvCanvas;
+  const x = (state.cardColor.s / 100) * (width - 1);
+  const y = (1 - state.cardColor.v / 100) * (height - 1);
+  context.save();
+  context.strokeStyle = '#fff';
+  context.lineWidth = 2;
+  context.beginPath();
+  context.arc(x, y, 7, 0, Math.PI * 2);
+  context.stroke();
+  context.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+  context.lineWidth = 1;
+  context.stroke();
+  context.restore();
+}
+
+function drawHueCursor(context) {
+  const { width, height } = colorHueCanvas;
+  const y = (state.cardColor.h / 360) * (height - 1);
+  context.save();
+  context.strokeStyle = '#fff';
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(0, y);
+  context.lineTo(width, y);
+  context.stroke();
+  context.restore();
+}
+
+function setCardColorFromSv(x, y) {
+  const { width, height } = colorSvCanvas;
+  state.cardColor.s = Math.max(0, Math.min(100, (x / (width - 1)) * 100));
+  state.cardColor.v = Math.max(0, Math.min(100, (1 - y / (height - 1)) * 100));
+  onCardColorChange();
+}
+
+function setCardColorFromHue(y) {
+  const { height } = colorHueCanvas;
+  state.cardColor.h = Math.max(0, Math.min(360, (y / (height - 1)) * 360));
+  onCardColorChange();
+}
+
+function onCardColorChange() {
+  updateColorSwatch();
+  drawSvPlane();
+  drawHueStrip();
+  scheduleRender();
+}
+
+function bindColorPickerDrag(canvas, onMove) {
+  if (!canvas) return;
+
+  const handlePointer = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * canvas.width;
+    const y = ((event.clientY - rect.top) / rect.height) * canvas.height;
+    onMove(x, y);
   };
+
+  canvas.addEventListener('pointerdown', (event) => {
+    canvas.setPointerCapture(event.pointerId);
+    handlePointer(event);
+  });
+
+  canvas.addEventListener('pointermove', (event) => {
+    if (!canvas.hasPointerCapture(event.pointerId)) return;
+    handlePointer(event);
+  });
+}
+
+function initColorPicker() {
+  if (!colorSvCanvas || !colorHueCanvas) return;
+
+  bindColorPickerDrag(colorSvCanvas, (x, y) => setCardColorFromSv(x, y));
+  bindColorPickerDrag(colorHueCanvas, (_x, y) => setCardColorFromHue(y));
+  updateColorSwatch();
+  drawSvPlane();
+  drawHueStrip();
 }
 
 function drawPhotoPlaceholder(context, area) {
@@ -242,22 +277,33 @@ function drawPhotoPlaceholder(context, area) {
   context.restore();
 }
 
-function drawMainCard(context, fieldImg, hueShift, satPercent) {
-  const tintedField = tintFieldImage(fieldImg, hueShift, satPercent);
+function drawRoundedRectPath(context, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  context.beginPath();
+  context.moveTo(x + r, y);
+  context.lineTo(x + width - r, y);
+  context.quadraticCurveTo(x + width, y, x + width, y + r);
+  context.lineTo(x + width, y + height - r);
+  context.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  context.lineTo(x + r, y + height);
+  context.quadraticCurveTo(x, y + height, x, y + height - r);
+  context.lineTo(x, y + r);
+  context.quadraticCurveTo(x, y, x + r, y);
+  context.closePath();
+}
+
+function drawMainCard(context, cardColor) {
   const { rect1 } = LAYOUT.layers;
+  const [r, g, b] = hsvToRgb(cardColor.h, cardColor.s, cardColor.v);
 
   context.save();
   context.shadowColor = 'rgba(0, 0, 0, 0.1)';
   context.shadowBlur = 36;
   context.shadowOffsetX = 0;
   context.shadowOffsetY = 14;
-  context.drawImage(
-    tintedField,
-    rect1.x,
-    rect1.y,
-    CARD_ASSET.width,
-    CARD_ASSET.height,
-  );
+  drawRoundedRectPath(context, rect1.x, rect1.y, rect1.width, rect1.height, rect1.radius);
+  context.fillStyle = rgbToCss(r, g, b);
+  context.fill();
   context.restore();
 }
 
@@ -268,20 +314,6 @@ function drawImageInArea(context, img, area) {
   const x = area.x + (area.width - width) / 2;
   const y = area.y + (area.height - height) / 2;
   context.drawImage(img, x, y, width, height);
-}
-
-function drawFirmText(context, img, area) {
-  context.drawImage(
-    img,
-    0,
-    area.srcY,
-    img.width,
-    area.srcH,
-    area.x,
-    area.y,
-    area.width,
-    area.height,
-  );
 }
 
 function drawLogo(context, logoImg, area, company) {
@@ -305,21 +337,15 @@ function drawBackground(context, backgroundImg) {
 async function render() {
   await loadFont();
 
-  const { hue, sat } = getCardAdjustments();
-  state.cardHue = hue;
-  state.cardSat = sat;
-
-  const [backgroundImg, fieldImg, investorImg, firmTextImg] = await Promise.all([
+  const [backgroundImg, investorImg] = await Promise.all([
     loadImage(ASSETS.background),
-    loadImage(ASSETS.field),
     loadImage(ASSETS.investor),
-    loadImage(ASSETS.firmText),
   ]);
 
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
   drawBackground(ctx, backgroundImg);
-  drawMainCard(ctx, fieldImg, hue, sat);
+  drawMainCard(ctx, state.cardColor);
 
   const { photo } = LAYOUT.layers;
   if (state.photo) {
@@ -344,7 +370,6 @@ async function render() {
   }
 
   drawImageInArea(ctx, investorImg, LAYOUT.layers.investor);
-  drawFirmText(ctx, firmTextImg, LAYOUT.layers.firmText);
 
   if (state.company) {
     const logoImg = await loadImage(LOGOS[state.company]);
@@ -395,21 +420,6 @@ nameInput.addEventListener('input', (event) => {
   scheduleRender();
 });
 
-function handleCardAdjustChange() {
-  tintedFieldCache.clear();
-  scheduleRender();
-}
-
-if (cardHueInput) {
-  cardHueInput.addEventListener('input', handleCardAdjustChange);
-  cardHueInput.addEventListener('change', handleCardAdjustChange);
-}
-
-if (cardSatInput) {
-  cardSatInput.addEventListener('input', handleCardAdjustChange);
-  cardSatInput.addEventListener('change', handleCardAdjustChange);
-}
-
 companyTabs.addEventListener('click', (event) => {
   const button = event.target.closest('[data-company]');
   if (!button) return;
@@ -437,6 +447,7 @@ downloadBtn.addEventListener('click', async () => {
 });
 
 scheduleRender();
+initColorPicker();
 
 if (window.location.protocol === 'file:') {
   const warning = document.getElementById('fileWarning');
