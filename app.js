@@ -324,7 +324,7 @@ function drawMainCard(context, cardColor) {
   blurredCtx.filter = 'none';
 
   context.save();
-  context.shadowColor = 'rgba(0, 0, 0, 0.1)';
+  context.shadowColor = 'rgba(0, 0, 0, 0.2)';
   context.shadowBlur = 40;
   context.shadowOffsetX = 0;
   context.shadowOffsetY = 16;
