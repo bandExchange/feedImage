@@ -324,14 +324,13 @@ function drawMainCard(context, cardColor) {
   blurredCtx.filter = 'none';
 
   context.save();
-  context.shadowColor = 'rgba(15, 23, 42, 0.14)';
-  context.shadowBlur = 42;
+  context.shadowColor = 'rgba(0, 0, 0, 0.1)';
+  context.shadowBlur = 40;
   context.shadowOffsetX = 0;
-  context.shadowOffsetY = 18;
+  context.shadowOffsetY = 16;
   drawRoundedRectPath(context, x, y, width, height, radius);
   context.fillStyle = 'rgba(0, 0, 0, 0.01)';
   context.fill();
-  context.shadowColor = 'transparent';
   context.restore();
 
   context.save();
