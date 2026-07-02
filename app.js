@@ -15,7 +15,7 @@ const CANVAS_SIZE = LAYOUT.canvas.width;
 
 const ASSETS = {
   background: './assets/pfBackground.png',
-  investor: './assets/bnxInvestor.png',
+  investor: './assets/bnxInvestor.png?v=2',
   font: './assets/Paperlogy-3Light.ttf',
 };
 
