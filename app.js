@@ -6,7 +6,7 @@ const LAYOUT = {
     rect1: { x: 425, y: 270, width: 1041, height: 1350, radius: 80 },
     photo: { x: 732, y: 432, width: 425, height: 425 },
     name: { x: 699, y: 907, width: 494, height: 60, fontSize: 60 },
-    investor: { x: 699, y: 998, width: 492, height: 90 },
+    investor: { x: 656, y: 978, width: 580, height: 150 },
     logo: { x: 699, y: 1235, width: 492, height: 220 },
   },
 };
@@ -16,7 +16,7 @@ const CANVAS_SIZE = LAYOUT.canvas.width;
 const ASSETS = {
   background: './assets/pfBackground.png',
   investor: './assets/bnxInvestor.png',
-  font: './assets/Paperlogy-3Light.ttf',
+  font: './assets/Freesentation-3Light.ttf',
 };
 
 const LOGOS = {
@@ -69,7 +69,7 @@ function loadImage(src) {
 async function loadFont() {
   if (fontLoaded) return;
   try {
-    const face = new FontFace('Paperlogy', `url(${ASSETS.font})`);
+    const face = new FontFace('Freesentation', `url(${ASSETS.font})`);
     await face.load();
     document.fonts.add(face);
     fontLoaded = true;
@@ -358,7 +358,7 @@ async function render() {
     const { name: nameArea } = LAYOUT.layers;
     ctx.save();
     ctx.fillStyle = '#1a1a1a';
-    ctx.font = `${nameArea.fontSize}px Paperlogy, sans-serif`;
+    ctx.font = `${nameArea.fontSize}px Freesentation, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(
