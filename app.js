@@ -48,7 +48,6 @@ const photoInput = document.getElementById('photoInput');
 const nameInput = document.getElementById('nameInput');
 const colorSvCanvas = document.getElementById('colorSv');
 const colorHueCanvas = document.getElementById('colorHue');
-const colorSwatch = document.getElementById('colorSwatch');
 const companyTabs = document.getElementById('companyTabs');
 const downloadBtn = document.getElementById('downloadBtn');
 
@@ -127,12 +126,6 @@ function hsvToRgb(h, s, v) {
 
 function rgbToCss(r, g, b) {
   return `rgb(${r}, ${g}, ${b})`;
-}
-
-function updateColorSwatch() {
-  if (!colorSwatch) return;
-  const [r, g, b] = hsvToRgb(state.cardColor.h, state.cardColor.s, state.cardColor.v);
-  colorSwatch.style.background = rgbToCss(r, g, b);
 }
 
 function drawSvPlane() {
@@ -226,7 +219,6 @@ function setCardColorFromHue(y) {
 }
 
 function onCardColorChange() {
-  updateColorSwatch();
   drawSvPlane();
   drawHueStrip();
   scheduleRender();
@@ -258,7 +250,6 @@ function initColorPicker() {
 
   bindColorPickerDrag(colorSvCanvas, (x, y) => setCardColorFromSv(x, y));
   bindColorPickerDrag(colorHueCanvas, (_x, y) => setCardColorFromHue(y));
-  updateColorSwatch();
   drawSvPlane();
   drawHueStrip();
 }
