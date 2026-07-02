@@ -4,9 +4,10 @@
     "background": { "x": 0, "y": 0, "width": 1890, "height": 1890 },
     "rect2": { "x": 313, "y": 229, "width": 1265, "height": 1432, "radius": 120 },
     "rect1": { "x": 425, "y": 270, "width": 1041, "height": 1350, "radius": 80 },
-    "photo": { "x": 742, "y": 442, "width": 405, "height": 405 },
+    "photo": { "x": 732, "y": 432, "width": 425, "height": 425 },
     "name": { "x": 699, "y": 907, "width": 494, "height": 60, "fontSize": 60 },
-    "text": { "x": 699, "y": 998, "width": 492, "height": 153 },
-    "logo": { "x": 699, "y": 1300, "width": 492, "height": 220 }
+    "investor": { "x": 699, "y": 998, "width": 492, "height": 50 },
+    "firmText": { "x": 699, "y": 1107, "width": 492, "height": 44, "srcY": 109, "srcH": 44 },
+    "logo": { "x": 699, "y": 1235, "width": 492, "height": 220 }
   }
 }

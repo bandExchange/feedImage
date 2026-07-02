@@ -4,10 +4,11 @@ const LAYOUT = {
     background: { x: 0, y: 0, width: 1890, height: 1890 },
     rect2: { x: 313, y: 229, width: 1265, height: 1432, radius: 120 },
     rect1: { x: 425, y: 270, width: 1041, height: 1350, radius: 80 },
-    photo: { x: 742, y: 442, width: 405, height: 405 },
+    photo: { x: 732, y: 432, width: 425, height: 425 },
     name: { x: 699, y: 907, width: 494, height: 60, fontSize: 60 },
-    text: { x: 699, y: 998, width: 492, height: 153 },
-    logo: { x: 699, y: 1220, width: 492, height: 220 },
+    investor: { x: 699, y: 998, width: 492, height: 50 },
+    firmText: { x: 699, y: 1107, width: 492, height: 44, srcY: 109, srcH: 44 },
+    logo: { x: 699, y: 1235, width: 492, height: 220 },
   },
 };
 
@@ -24,7 +25,8 @@ const CARD_ASSET = {
 const ASSETS = {
   background: './assets/pfBackground.png',
   field: './assets/pffield-clean.png',
-  text: './assets/pfText.png',
+  investor: './assets/bnxInvestor.png',
+  firmText: './assets/pfText.png',
   font: './assets/Paperlogy-3Light.ttf',
 };
 
@@ -259,6 +261,29 @@ function drawMainCard(context, fieldImg, hueShift, satPercent) {
   context.restore();
 }
 
+function drawImageInArea(context, img, area) {
+  const scale = Math.min(area.width / img.width, area.height / img.height);
+  const width = img.width * scale;
+  const height = img.height * scale;
+  const x = area.x + (area.width - width) / 2;
+  const y = area.y + (area.height - height) / 2;
+  context.drawImage(img, x, y, width, height);
+}
+
+function drawFirmText(context, img, area) {
+  context.drawImage(
+    img,
+    0,
+    area.srcY,
+    img.width,
+    area.srcH,
+    area.x,
+    area.y,
+    area.width,
+    area.height,
+  );
+}
+
 function drawLogo(context, logoImg, area, company) {
   const scale = Math.min(area.width / logoImg.width, area.height / logoImg.height);
   const width = logoImg.width * scale;
@@ -284,10 +309,11 @@ async function render() {
   state.cardHue = hue;
   state.cardSat = sat;
 
-  const [backgroundImg, fieldImg, textImg] = await Promise.all([
+  const [backgroundImg, fieldImg, investorImg, firmTextImg] = await Promise.all([
     loadImage(ASSETS.background),
     loadImage(ASSETS.field),
-    loadImage(ASSETS.text),
+    loadImage(ASSETS.investor),
+    loadImage(ASSETS.firmText),
   ]);
 
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
@@ -317,8 +343,8 @@ async function render() {
     ctx.restore();
   }
 
-  const { text } = LAYOUT.layers;
-  ctx.drawImage(textImg, text.x, text.y, text.width, text.height);
+  drawImageInArea(ctx, investorImg, LAYOUT.layers.investor);
+  drawFirmText(ctx, firmTextImg, LAYOUT.layers.firmText);
 
   if (state.company) {
     const logoImg = await loadImage(LOGOS[state.company]);
