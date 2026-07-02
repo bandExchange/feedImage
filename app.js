@@ -7,7 +7,7 @@ const LAYOUT = {
     photo: { x: 732, y: 432, width: 425, height: 425 },
     name: { x: 699, y: 907, width: 494, height: 60, fontSize: 68 },
     investor: { x: 680, y: 983, width: 530, height: 130 },
-    logo: { x: 699, y: 1235, width: 492, height: 220 },
+    logo: { x: 675, y: 1220, width: 540, height: 255 },
   },
 };
 
@@ -16,7 +16,7 @@ const CANVAS_SIZE = LAYOUT.canvas.width;
 const ASSETS = {
   background: './assets/pfBackground.png',
   investor: './assets/bnxInvestor.png',
-  font: './assets/Freesentation-3Light.ttf',
+  font: './assets/Paperlogy-3Light.ttf',
 };
 
 const LOGOS = {
@@ -69,7 +69,7 @@ function loadImage(src) {
 async function loadFont() {
   if (fontLoaded) return;
   try {
-    const face = new FontFace('Freesentation', `url(${ASSETS.font})`);
+    const face = new FontFace('Paperlogy', `url(${ASSETS.font})`);
     await face.load();
     document.fonts.add(face);
     fontLoaded = true;
@@ -294,16 +294,80 @@ function drawRoundedRectPath(context, x, y, width, height, radius) {
 
 function drawMainCard(context, cardColor) {
   const { rect1 } = LAYOUT.layers;
+  const { x, y, width, height, radius } = rect1;
   const [r, g, b] = hsvToRgb(cardColor.h, cardColor.s, cardColor.v);
+  const blurAmount = 28;
+  const pad = blurAmount * 2;
+
+  const snapshot = document.createElement('canvas');
+  snapshot.width = width + pad * 2;
+  snapshot.height = height + pad * 2;
+  const snapshotCtx = snapshot.getContext('2d');
+  snapshotCtx.drawImage(
+    context.canvas,
+    x - pad,
+    y - pad,
+    width + pad * 2,
+    height + pad * 2,
+    0,
+    0,
+    snapshot.width,
+    snapshot.height,
+  );
+
+  const blurred = document.createElement('canvas');
+  blurred.width = snapshot.width;
+  blurred.height = snapshot.height;
+  const blurredCtx = blurred.getContext('2d');
+  blurredCtx.filter = `blur(${blurAmount}px)`;
+  blurredCtx.drawImage(snapshot, 0, 0);
+  blurredCtx.filter = 'none';
 
   context.save();
-  context.shadowColor = 'rgba(0, 0, 0, 0.1)';
-  context.shadowBlur = 36;
+  context.shadowColor = 'rgba(15, 23, 42, 0.14)';
+  context.shadowBlur = 42;
   context.shadowOffsetX = 0;
-  context.shadowOffsetY = 14;
-  drawRoundedRectPath(context, rect1.x, rect1.y, rect1.width, rect1.height, rect1.radius);
-  context.fillStyle = rgbToCss(r, g, b);
+  context.shadowOffsetY = 18;
+  drawRoundedRectPath(context, x, y, width, height, radius);
+  context.fillStyle = 'rgba(0, 0, 0, 0.01)';
   context.fill();
+  context.shadowColor = 'transparent';
+  context.restore();
+
+  context.save();
+  drawRoundedRectPath(context, x, y, width, height, radius);
+  context.clip();
+
+  context.drawImage(blurred, x - pad, y - pad);
+  context.fillStyle = `rgba(${r}, ${g}, ${b}, 0.38)`;
+  context.fillRect(x, y, width, height);
+
+  const frost = context.createLinearGradient(x, y, x, y + height);
+  frost.addColorStop(0, 'rgba(255, 255, 255, 0.52)');
+  frost.addColorStop(0.45, 'rgba(255, 255, 255, 0.18)');
+  frost.addColorStop(1, 'rgba(255, 255, 255, 0.06)');
+  context.fillStyle = frost;
+  context.fillRect(x, y, width, height);
+  context.restore();
+
+  context.save();
+  drawRoundedRectPath(context, x, y, width, height, radius);
+  context.strokeStyle = 'rgba(255, 255, 255, 0.72)';
+  context.lineWidth = 2;
+  context.stroke();
+  context.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+  context.lineWidth = 1;
+  context.stroke();
+
+  const highlight = context.createLinearGradient(x, y, x, y + radius * 2);
+  highlight.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
+  highlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  context.strokeStyle = highlight;
+  context.lineWidth = 1.5;
+  context.beginPath();
+  context.moveTo(x + radius, y + 1);
+  context.lineTo(x + width - radius, y + 1);
+  context.stroke();
   context.restore();
 }
 
@@ -358,7 +422,7 @@ async function render() {
     const { name: nameArea } = LAYOUT.layers;
     ctx.save();
     ctx.fillStyle = '#1a1a1a';
-    ctx.font = `${nameArea.fontSize}px Freesentation, sans-serif`;
+    ctx.font = `${nameArea.fontSize}px Paperlogy, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(
